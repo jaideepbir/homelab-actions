@@ -25,10 +25,13 @@ jobs:
           import smtplib
           from email.message import EmailMessage
 
-          payload = os.environ.get("PAYLOAD") or "{}"
-          data = json.loads(payload)
+          payload = os.environ.get("PAYLOAD")
+          if not payload or payload == "null":
+              data = {}
+          else:
+              data = json.loads(payload)
 
-          subject = f"K3s {data.get('cluster','')} {data.get('event','')} ({data.get('status','')})"
+          subject = f"K3s {data.get('cluster','')} {data.get('event','test')} ({data.get('status','')})"
           body = "\n".join(
               [
                   f"Cluster: {data.get('cluster','')}",
