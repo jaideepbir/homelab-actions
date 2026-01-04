@@ -1,0 +1,61 @@
+name: k3s-node-alert
+
+on:
+  repository_dispatch:
+    types: [k3s-node-alert]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: [self-hosted, pi5]
+    steps:
+      - name: Send email
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import smtplib
+          from email.message import EmailMessage
+
+          payload = os.environ.get("PAYLOAD") or "{}"
+          data = json.loads(payload)
+
+          subject = f"K3s {data.get('cluster','')} {data.get('event','')} ({data.get('status','')})"
+          body = "\n".join(
+              [
+                  f"Cluster: {data.get('cluster','')}",
+                  f"Event: {data.get('event','')}",
+                  f"Status: {data.get('status','')}",
+                  f"Down (new): {data.get('nodes_down','')}",
+                  f"Down (current): {data.get('nodes_down_current','')}",
+                  f"Recovered: {data.get('nodes_recovered','')}",
+                  f"Time: {data.get('timestamp','')}",
+                  "",
+                  "Nodes:",
+                  data.get("nodes_table", ""),
+              ]
+          )
+
+          msg = EmailMessage()
+          msg["Subject"] = subject
+          msg["From"] = os.environ["MAIL_FROM"]
+          msg["To"] = os.environ["MAIL_TO"]
+          msg.set_content(body)
+
+          host = os.environ["SMTP_HOST"]
+          port = int(os.environ["SMTP_PORT"])
+          user = os.environ["SMTP_USER"]
+          password = os.environ["SMTP_PASS"]
+
+          with smtplib.SMTP_SSL(host, port) as smtp:
+              smtp.login(user, password)
+              smtp.send_message(msg)
+          PY
