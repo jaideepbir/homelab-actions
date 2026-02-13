@@ -36,19 +36,40 @@ jobs:
               payload = os.environ.get("PAYLOAD_INPUT") or "{}"
           data = json.loads(payload)
 
-          subject = f"K3s {data.get('cluster','')} {data.get('event','test')} ({data.get('status','')})"
+          cluster = data.get("cluster", "")
+          event = data.get("event", "test")
+          status = data.get("status", "")
+          nodes_down = data.get("nodes_down", "")
+          nodes_down_current = data.get("nodes_down_current", "")
+          nodes_recovered = data.get("nodes_recovered", "")
+          timestamp = data.get("timestamp", "")
+          nodes_table = data.get("nodes_table", "")
+
+          if event == "resolved" or status == "node-recovered":
+              alert_label = "RECOVERY"
+              summary = f"Recovered nodes: {nodes_recovered or 'none'}"
+          elif event == "incident" or status == "node-down":
+              alert_label = "INCIDENT"
+              summary = f"Newly down nodes: {nodes_down or 'none'}"
+          else:
+              alert_label = "CHANGE"
+              summary = "Node state change detected"
+
+          subject = f"[{alert_label}] k3s {cluster} - {status}"
           body = "\n".join(
               [
-                  f"Cluster: {data.get('cluster','')}",
-                  f"Event: {data.get('event','')}",
-                  f"Status: {data.get('status','')}",
-                  f"Down (new): {data.get('nodes_down','')}",
-                  f"Down (current): {data.get('nodes_down_current','')}",
-                  f"Recovered: {data.get('nodes_recovered','')}",
-                  f"Time: {data.get('timestamp','')}",
+                  f"Cluster: {cluster}",
+                  f"Alert Type: {alert_label}",
+                  f"Event: {event}",
+                  f"Status: {status}",
+                  f"Summary: {summary}",
+                  f"Down (new): {nodes_down}",
+                  f"Down (current): {nodes_down_current}",
+                  f"Recovered: {nodes_recovered}",
+                  f"Time: {timestamp}",
                   "",
                   "Nodes:",
-                  data.get("nodes_table", ""),
+                  nodes_table,
               ]
           )
 
