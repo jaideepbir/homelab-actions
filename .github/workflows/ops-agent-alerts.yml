@@ -4,7 +4,10 @@ on:
   repository_dispatch:
     types:
       - k3s-ops-agent-alert
+      - k3s-support-agent-alert
       - airflow-ops-agent-alert
+      - cloudflare-agent-alert
+      - immich-agent-alert
       - resume-ops-agent-alert
       - ghrunner-ops-agent-alert
       - wiki-ops-agent-alert
