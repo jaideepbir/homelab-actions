@@ -74,13 +74,23 @@ jobs:
     needs: notify
     if: ${{ always() }}
     steps:
+      - name: Mint triage dispatch token via GitHub App
+        id: triage_app_token
+        if: ${{ secrets.K3S_OPS_APP_ID != '' && secrets.K3S_OPS_APP_PRIVATE_KEY != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.K3S_OPS_APP_ID }}
+          private-key: ${{ secrets.K3S_OPS_APP_PRIVATE_KEY }}
+          owner: Jmake-space
+          repositories: k3s-cluster
+
       - name: Forward to triage-router-workflow
         env:
           PAYLOAD: ${{ toJson(github.event.client_payload) }}
           PAYLOAD_INPUT: ${{ github.event.inputs.payload_json }}
           TRIAGE_DISPATCH_URL: ${{ vars.TRIAGE_DISPATCH_URL || 'https://api.github.com/repos/Jmake-space/k3s-cluster/dispatches' }}
           TRIAGE_EVENT_TYPE: ${{ vars.TRIAGE_EVENT_TYPE || 'triage-router-workflow' }}
-          TRIAGE_DISPATCH_TOKEN: ${{ secrets.K3S_OPS_REPO_DISPATCH_TOKEN }}
+          TRIAGE_DISPATCH_TOKEN: ${{ steps.triage_app_token.outputs.token || secrets.K3S_OPS_REPO_DISPATCH_TOKEN }}
           SOURCE_REPO: ${{ github.repository }}
           SOURCE_WORKFLOW: ${{ github.workflow }}
           SOURCE_RUN_ID: ${{ github.run_id }}
