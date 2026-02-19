@@ -23,15 +23,27 @@ jobs:
         run: |
           set -e
           
+          # Find kubectl location
+          KUBECTL=$(which kubectl 2>/dev/null || find /usr -name kubectl -type f 2>/dev/null | head -1 || echo "kubectl")
+          
+          if ! command -v $KUBECTL &> /dev/null; then
+            echo "Installing kubectl..."
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            KUBECTL=./kubectl
+          fi
+          
+          echo "Using kubectl: $KUBECTL"
+          
           # Create or update n8n-smtp secret in default namespace
-          kubectl create secret generic n8n-smtp \
+          $KUBECTL create secret generic n8n-smtp \
             --from-literal=smtp-host="$SMTP_HOST" \
             --from-literal=smtp-port="$SMTP_PORT" \
             --from-literal=smtp-user="$SMTP_USER" \
             --from-literal=smtp-pass="$SMTP_PASS" \
             --from-literal=mail-from="$MAIL_FROM" \
             --from-literal=mail-to="$MAIL_TO" \
-            --dry-run=client -o yaml | kubectl apply -f -
+            --dry-run=client -o yaml | $KUBECTL apply -f -
           
           echo "✓ SMTP secrets synced to k3s"
-          kubectl get secret n8n-smtp -o jsonpath='{.data}' | jq 'keys'
+          $KUBECTL get secret n8n-smtp -o jsonpath='{.data}' | jq 'keys'
