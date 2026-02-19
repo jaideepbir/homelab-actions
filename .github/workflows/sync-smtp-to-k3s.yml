@@ -1,0 +1,37 @@
+name: Sync SMTP Secrets to K3s
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/sync-smtp-to-k3s.yml'
+
+jobs:
+  sync-secrets:
+    runs-on: [self-hosted]
+    steps:
+      - name: Create/Update SMTP Secret in K3s
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          set -e
+          
+          # Create or update n8n-smtp secret in default namespace
+          kubectl create secret generic n8n-smtp \
+            --from-literal=smtp-host="$SMTP_HOST" \
+            --from-literal=smtp-port="$SMTP_PORT" \
+            --from-literal=smtp-user="$SMTP_USER" \
+            --from-literal=smtp-pass="$SMTP_PASS" \
+            --from-literal=mail-from="$MAIL_FROM" \
+            --from-literal=mail-to="$MAIL_TO" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "✓ SMTP secrets synced to k3s"
+          kubectl get secret n8n-smtp -o jsonpath='{.data}' | jq 'keys'
