@@ -20,6 +20,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
+          KUBECONFIG: /home/jaideepbir/k3s.yaml
         run: |
           set -e
           
@@ -34,6 +35,7 @@ jobs:
           fi
           
           echo "Using kubectl: $KUBECTL"
+          echo "Using kubeconfig: $KUBECONFIG"
           
           # Create or update n8n-smtp secret in default namespace
           $KUBECTL create secret generic n8n-smtp \
